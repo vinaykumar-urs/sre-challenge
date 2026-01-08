@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-and-egress
+  namespace: fixed
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector: {} # Allow talking to kube-system (CoreDNS)
+    ports:
+    - protocol: UDP
+      port: 53 # FIX: Explicitly Allow DNS UDP
+    - protocol: TCP
+      port: 53 # FIX: Explicitly Allow DNS TCP
+  - to:
+    - ipBlock: # Allow other egress if needed
+        cidr: 0.0.0.0/0

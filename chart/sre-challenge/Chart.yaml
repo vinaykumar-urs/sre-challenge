@@ -1,0 +1,7 @@
+apiVersion: v2
+name: sre-challenge
+description: Production-ready SRE Challenge deployment with HPA, Monitoring, and Alerts
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+dependencies: []

@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sre-challenge.fullname" . }}-frontend
+  labels:
+    {{- include "sre-challenge.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+spec:
+  {{- if not .Values.frontend.autoscaling.enabled }}
+  replicas: {{ .Values.frontend.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "sre-challenge.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: frontend
+  template:
+    metadata:
+      labels:
+        {{- include "sre-challenge.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
+          imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "sre-challenge.fullname" . }}-config
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
+          # The "Fixed" logic (Web Server + Safe Memory)
+          command: 
+          - python
+          - -c
+          - |
+            import http.server
+            import socketserver
+            import socket
+            import os
+            
+            REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+
+            def check_redis():
+                try:
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.settimeout(1)
+                    # Connect to Redis Service on Port 6379
+                    result = sock.connect_ex((REDIS_HOST, 6379))
+                    sock.close()
+                    return result == 0
+                except:
+                    return False
+
+            class Handler(http.server.SimpleHTTPRequestHandler):
+                def do_GET(self):
+                    redis_status = "💚 Connected" if check_redis() else "❤️ Failed"
+                    
+                    self.send_response(200)
+                    self.end_headers()
+                    response = f"""
+                    <h1>SRE Challenge - Production</h1>
+                    <p>Status: <b>Healthy</b></p>
+                    <p>Memory: Safe (100MB allocated)</p>
+                    <hr>
+                    <h3>Dependencies:</h3>
+                    <ul>
+                      <li>Redis ({REDIS_HOST}): <b>{redis_status}</b></li>
+                    </ul>
+                    """
+                    self.wfile.write(response.encode('utf-8'))
+
+            print("Allocating 100MB Memory...")
+            payload = "A" * (1024 * 1024 * 100) 
+            print(f"Starting Web Server on Port 8080... (Redis: {REDIS_HOST})")
+            httpd = socketserver.TCPServer(("", 8080), Handler)
+            httpd.serve_forever()
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          # Liveness Probe (HTTP Check is better for Web Apps)
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10

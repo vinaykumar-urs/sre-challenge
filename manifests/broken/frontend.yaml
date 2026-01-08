@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: broken
+  labels:
+    app: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: python:3.9-slim
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "250m"
+          limits:
+            memory: "256Mi" # BUG: Application below will consume ~300Mi
+            cpu: "500m"
+        env:
+        - name: BACKEND_URL
+          value: "http://backend-svc"
+        # Script to allocate 300MB of Memory to force OOMKilled
+        command: 
+        - python
+        - -c
+        - |
+          import time
+          import os
+          print("Starting Memory Stressor...")
+          # Allocate 300MB chunks
+          payload = "A" * (1024 * 1024 * 300) 
+          print("Allocated 300MB. Sleeping...")
+          while True:
+            time.sleep(1)

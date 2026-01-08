@@ -1,0 +1,13 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-egress
+  namespace: broken
+spec:
+  podSelector: {} # Selects ALL pods
+  policyTypes:
+  - Egress
+  egress:
+  # No rules provided = DENY ALL EGRESS
+  # This effectively blocks DNS (UDP 53) and connection to Backend
+  # This allows us to observe DNS timeouts perfectly.

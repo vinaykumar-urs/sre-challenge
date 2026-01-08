@@ -1,0 +1,29 @@
+{{- if .Values.monitoring.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "sre-challenge.fullname" . }}-alerts
+  labels:
+    {{- include "sre-challenge.labels" . | nindent 4 }}
+    release: {{ .Values.monitoring.prometheusRule.labels.release }}
+spec:
+  groups:
+  - name: SREChallengeAlerts
+    rules:
+    - alert: FrontendHighMemory
+      expr: container_memory_working_set_bytes{container="frontend"} > 400000000
+      for: 1m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Frontend Memory High (>400MB)"
+        description: "Pod {{ "{{ $labels.pod }}" }} is using high memory. Check for leaks."
+    - alert: BackendDown
+      expr: kube_endpoint_address_available{service="backend-svc"} == 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Backend Service Down"
+        description: "Backend Service has 0 endpoints. Check labels or crash loop."
+{{- end }}

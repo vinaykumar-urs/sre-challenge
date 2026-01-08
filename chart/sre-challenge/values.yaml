@@ -1,0 +1,85 @@
+# Default values for sre-challenge.
+# This is a Production-Ready configuration.
+
+# 1. Global Application Config
+global:
+  environment: production
+
+# 2. Frontend Component
+frontend:
+  replicaCount: 2  # High Availability (HA) - Start with 2 pods
+  image:
+    repository: python
+    tag: "3.9-slim"
+    pullPolicy: IfNotPresent
+  
+  resources:
+    requests:
+      cpu: 250m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi # Proper limit to prevent OOM
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+  # ConfigMap Usage explicitly for learning
+  config:
+    backendUrl: "http://backend-svc"
+
+# 3. Backend Component
+backend:
+  replicaCount: 2
+  image:
+    repository: nginx
+    tag: "alpine"
+    pullPolicy: IfNotPresent
+  
+  service:
+    port: 80
+
+# 4. Observability (Prometheus Operator)
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true  # Create ServiceMonitor for scraping
+    labels:
+      release: monitoring # Must match Prometheus Operator release name
+  prometheusRule:
+    enabled: true  # Create Alerts
+    labels:
+      release: monitoring
+
+# 5. Ingress (External Access)
+ingress:
+  enabled: true
+  className: "nginx"
+  hosts:
+    - host: sre-challenge.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+# 6. Network Policy (Security)
+networkPolicy:
+  enabled: true
+
+# 7. Database (Redis StatefulSet)
+redis:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: redis
+    tag: "7.0-alpine"
+    pullPolicy: IfNotPresent
+  service:
+    port: 6379
+  persistence:
+    enabled: true
+    size: 1Gi
+
