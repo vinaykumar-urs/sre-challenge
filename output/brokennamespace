@@ -1,0 +1,45 @@
+===================================================
+   SRE Challenge - Debugging & Troubleshooting     
+   (Network, DNS, and Resource Analysis)           
+===================================================
+
+--- 1. Troubleshoot Internal Networking (Service Discovery) ---
+Goal: Verify if Frontend can resolve 'backend-svc'.
+Command: Checking Endpoints for 'backend-svc'...
+Warning: v1 Endpoints is deprecated in v1.33+; use discovery.k8s.io/v1 EndpointSlice
+NAME          ENDPOINTS        AGE
+backend-svc   10.244.0.14:80   3h53m
+ANALYSIS: 
+  - If ENDPOINTS is '<none>', the Service Selector does not match any Pods.
+  - This causes DNS resolution to fail or connection refused.
+
+--- 2. Troubleshoot DNS & External Connectivity (NetworkPolicy) ---
+Goal: Verify if Pods can reach CoreDNS (Port 53) and External Sites.
+Command: Launching temporary 'busybox' pod to run network tools...
+If you don't see a command prompt, try pressing enter.
+SUCCESS: Internet Reachable
+pod "debug-net-tools" deleted
+ANALYSIS:
+  - If DNS fails, NetworkPolicy might be blocking UDP/TCP Port 53.
+  - If External connect fails, NetworkPolicy Default-Deny is active.
+
+--- 3. Troubleshoot Resource Issues (OOM) ---
+Goal: Identify why Frontend is crashing.
+Command: Checking Pod Status and Events...
+NAME                        READY   STATUS    RESTARTS   AGE
+frontend-6b94454f6d-fxqdp   1/1     Running   0          3h53m
+
+Command: Checking Previous Termination State...
+
+ANALYSIS:
+  - 'OOMKilled' means the Pod hit its Memory Limit.
+  - Check Grafana Dashboard to see the memory spike.
+
+===================================================
+   Troubleshooting Complete.
+===================================================
+
+
+
+
+
