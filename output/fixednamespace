@@ -1,0 +1,28 @@
+      ============================================
+   SRE Challenge - Phase 3: The Fixes       
+   Namespace: fixed                         
+============================================
+Creating 'fixed' namespace...
+namespace/fixed unchanged
+Deploying FIXED resources...
+service/backend-svc unchanged
+deployment.apps/backend unchanged
+deployment.apps/frontend unchanged
+namespace/fixed unchanged
+networkpolicy.networking.k8s.io/allow-dns-and-egress unchanged
+Waiting for pods to start...
+deployment.apps/frontend condition met
+deployment.apps/backend condition met
+
+============================================
+   FIXED Environment Deployed!
+============================================
+1. Check Pods (Should be Running, NOT crashing):
+   kubectl get pods -n fixed
+
+2. Check Backend Endpoints (Should have IPs):
+   kubectl get endpoints backend-svc -n fixed
+
+3. Verify DNS (Should work):
+   kubectl run -i --rm --restart=Never busybox-fix --image=busybox:1.28 -n fixed -- nslookup backend-svc.fixed
+============================================
