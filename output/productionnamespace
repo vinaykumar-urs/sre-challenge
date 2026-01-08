@@ -1,0 +1,45 @@
+=========================================================
+   SRE Challenge - Production Resilience Test (Chaos)    
+   Namespace: production                                 
+=========================================================
+
+--- 1. Test Self-Healing (ReplicaSet) ---
+Deleting Pod: sre-production-sre-challenge-frontend-5d7fcdb845-26md9
+pod "sre-production-sre-challenge-frontend-5d7fcdb845-26md9" deleted
+Waiting for regeneration...
+NAME                                                     READY   STATUS    RESTARTS      AGE
+sre-production-sre-challenge-frontend-5d7fcdb845-c9kkn   1/1     Running   0             33s
+sre-production-sre-challenge-frontend-5d7fcdb845-xgsh7   1/1     Running   5 (53m ago)   92m
+SUCCESS: You should see a new Pod (Age: <5s) replacing the old one.
+
+--- 2. Test Network Policy (DNS Allow) ---
+Verifying that Frontend can talk to Backend (DNS)...
+Server:    10.96.0.10
+Address 1: 10.96.0.10 kube-dns.kube-system.svc.cluster.local
+
+Name:      backend-svc.production
+Address 1: 10.99.213.88 backend-svc.production.svc.cluster.local
+pod "verify-net" deleted
+SUCCESS: DNS Resolution worked!
+
+--- 3. Test Memory Limits (OOM Protection) ---
+Current Limit: 512Mi. We will patch a pod to use 600Mi.
+Expectation: Kubernetes should KILL the pod (OOMKilled).
+deployment.apps/sre-production-sre-challenge-frontend patched
+Watching for OOMKilled (Wait 15s)...
+NAME                                                     READY   STATUS             RESTARTS      AGE
+sre-production-sre-challenge-backend-5b67cbb47c-5zssj    1/1     Running            0             3h15m
+sre-production-sre-challenge-backend-5b67cbb47c-stnjl    1/1     Running            0             3h15m
+sre-production-sre-challenge-frontend-5d7fcdb845-c9kkn   1/1     Terminating        0             50s
+sre-production-sre-challenge-frontend-5d7fcdb845-xgsh7   1/1     Running            5 (54m ago)   92m
+sre-production-sre-challenge-frontend-6f9945587b-8j7r8   0/1     Pending            0             14s
+sre-production-sre-challenge-frontend-6f9945587b-cwwcw   0/1     CrashLoopBackOff   1 (9s ago)    15s
+sre-production-sre-challenge-redis-0                     1/1     Running            0             108m
+
+--- RESETTING TO NORMAL ---
+Reverting patch...
+deployment.apps/sre-production-sre-challenge-frontend rolled back
+Environment restored.
+=========================================================
+   Resilience Tests Completed!
+=========================================================
